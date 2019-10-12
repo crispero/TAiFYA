@@ -36,6 +36,10 @@ int getNumberFromInput(std::ifstream& fin)
 	{
 		return std::stoi(res[0]);
 	}
+	else
+	{
+		throw std::exception("Failed to parse number from input");
+	}
 }
 
 SAndY getTwoNumbersFromInput(std::ifstream& fin)
@@ -54,12 +58,19 @@ SAndY getTwoNumbersFromInput(std::ifstream& fin)
 			dto.y = std::stoi(res[0]);
 			return dto;
 		}
+		else
+		{
+			throw std::exception("Failed to parse number from input");
+		}
+	}
+	else
+	{
+		throw std::exception("Failed to parse number from input");
 	}
 }
 
 void ParseFromMoore(InputData &inputData, std::ifstream &fin)
 {
-	int i;
 	do
 	{
 		inputData.Y.push_back(getNumberFromInput(fin));
@@ -132,9 +143,8 @@ matrix getMealyMatrix(const InputData inputData)
 	return matrix;
 }
 
-void printMealyMatrix(const matrix matrix, int x, int s)
+void printMealyMatrix(const matrix matrix, int x, int s, std::ofstream& fout)
 {
-	std::ofstream fout("mealyMatrix.txt");
 	for (int i = 0; i < x; i++)
 	{
 		for (int j = 0; j < s; j++)
@@ -158,14 +168,14 @@ void mealyVisualization(vpair voutput, int statesCount)
 	std::vector<std::string> weights(voutput.size());
 	vpair edge(voutput.size());
 
-	for (int i = 0, x = 1, index = 0; i < voutput.size(); ++i, ++index)
+	for (size_t i = 0, x = 0, index = 0; i < voutput.size(); ++i, ++index)
 	{
 		if (i % statesCount == 0 && i != 0)
 		{
 			++x;
 			index = 0;
 		}
-		weights[i] = 'x' + std::to_string(x) + '/' + 'y' + std::to_string(voutput[i].second);
+		weights[i] = 'x' + std::to_string(x) + 'y' + std::to_string(voutput[i].second);
 		edge[i] = std::make_pair(index, voutput[i].first);
 	}
 
@@ -192,7 +202,7 @@ std::vector<int> getIndexes(const vpair unique, const vpair mealyMatrix, int x, 
 {
 	std::vector<int> indexes;
 	indexes.resize(unique.size() * x);
-	for (int i = 0; i < unique.size(); ++i)
+	for (size_t i = 0; i < unique.size(); ++i)
 	{
 		size_t index = i;
 		int k = unique[i].first;
@@ -211,9 +221,8 @@ std::vector<int> getIndexes(const vpair unique, const vpair mealyMatrix, int x, 
 	return indexes;
 }
 
-void printMooreMatrix(std::vector<int> indexes, vpair unique)
+void printMooreMatrix(std::vector<int> indexes, vpair unique, std::ofstream& fout)
 {
-	std::ofstream fout("mooreMatrix.txt");
 	for (size_t i = 0; i < indexes.size(); ++i)
 	{	
 		if ((i % unique.size() == 0) && i != 0)
@@ -237,7 +246,7 @@ void mooreVisualization(vpair unique, std::vector<int> indexes)
 	vpair edge(indexes.size());
 	std::ofstream fout("mooreGraph.dot");
 
-	for (int i = 0, x = 1, index = 0; i < indexes.size(); ++i, ++index)
+	for (size_t i = 0, x = 0, index = 0; i < indexes.size(); ++i, ++index)
 	{
 		if (i % unique.size() == 0 && i != 0)
 		{
@@ -259,39 +268,49 @@ void mooreVisualization(vpair unique, std::vector<int> indexes)
 
 int main(int argc, char* argv[])
 {
-	std::string fileName = argv[1];
-	std::ifstream fin(fileName);
+	try {
+		if (argc != 3)
+		{
+			std::cerr << "Invalid argumets count" << std::endl;
+			return 1;
+		}
 
-	if (!fin.is_open())
-	{
-		std::cerr << "Failed to open " << fileName << " for reading\n";
-		return 1;
+		std::ifstream fin(argv[1]);
+		std::ofstream fout(argv[2]);
+
+		if (!fin.is_open())
+		{
+			std::cerr << "Failed to open " << argv[1] << " for reading\n";
+			return 1;
+		}
+
+		InputData inputData = Parse(fin);
+
+		if (inputData.type == "moore")
+		{
+			vpair edge = getEdge(inputData);
+			matrix mealyMatrix = getMealyMatrix(inputData);
+
+			printMealyMatrix(mealyMatrix, inputData.x, inputData.s, fout);
+			mealyVisualization(edge, inputData.s);
+		}
+		else if (inputData.type == "mealy")
+		{
+			vpair unique = getUnique(inputData);
+			std::vector<int> indexes = getIndexes(unique, inputData.mealyMatrix, inputData.x, inputData.s);
+
+			printMooreMatrix(indexes, unique, fout);
+			mooreVisualization(unique, indexes);
+		}
+		else
+		{
+			return 1;
+		}
 	}
-
-	InputData inputData = Parse(fin);
+	catch (std::exception& e) {
+		std::cout << e.what() << '\n';
+	}
 	
-	if (inputData.type == "moore")
-	{
-		vpair edge = getEdge(inputData);
-		matrix mealyMatrix = getMealyMatrix(inputData);
-
-		printMealyMatrix(mealyMatrix, inputData.x, inputData.s);
-		mealyVisualization(edge, inputData.s);
-	}
-	else if (inputData.type == "mealy")
-	{
-		vpair unique = getUnique(inputData);
-		std::vector<int> indexes = getIndexes(unique, inputData.mealyMatrix, inputData.x, inputData.s);
-		
-		printMooreMatrix(indexes, unique);
-		mooreVisualization(unique, indexes);
-	}
-	else
-	{
-		return 1;
-	}
-	
-
 	return 0;
 }
 
