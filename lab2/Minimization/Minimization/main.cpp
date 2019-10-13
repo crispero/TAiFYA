@@ -1,4 +1,5 @@
-﻿#include "CMealyMinimization.h"
+﻿#include "Helper.h"
+#include "CMealyMinimization.h"
 #include "CMooreMinimization.h"
 #include <iostream>
 
@@ -22,10 +23,11 @@ int main(int argc, char* argv[])
 	int x, y, s;
 	std::string type;
 	fin >> x >> y >> s >> type;
-
+	  
 	if (type == "mealy")
 	{
-	//	CMealyMinimization mealyMinimization(x, y, s);
+		CMealyMinimization mealyMinimization(x, y, s);
+		mealyMinimization.Parse(fin);
 	}
 	else if (type == "moore")
 	{

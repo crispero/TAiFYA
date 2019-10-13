@@ -1,0 +1,2 @@
+s5y1 s6y1 s3y2 s2y1 s5y1 s0y2 s1y2 
+s3y2 s4y2 s2y1 s2y2 s2y2 s4y1 s4y1 

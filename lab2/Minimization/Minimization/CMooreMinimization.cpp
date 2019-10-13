@@ -1,5 +1,4 @@
 #include "CMooreMinimization.h"
-#include "Helper.h"
 #include <iostream>
 
 CMooreMinimization::CMooreMinimization(const int x, const int y, const int s)
@@ -95,24 +94,92 @@ void CMooreMinimization::Minimization(std::map<int, std::vector<int>>& fmap)
 					temp.push_back(it->second[j].first);
 				}
 			}
-			if (outmap.size() != 0)
-			{
-				for (auto it1 = outmap.begin(); it1 != outmap.end(); ++it1)
-				{
-					if (it1->second == temp)
-					{
-						outmap.insert(std::make_pair(index, temp));
-						index++;
-					}
-				}
-			}
-			else
-			{
-				outmap.insert(std::make_pair(index, temp));
-				index++;
-			}
+			outmap.insert(std::make_pair(index, temp));
+			index++;
 		}
 	}
 	
+	std::vector<std::vector<int>> temp;
+	for (auto it = outmap.begin(); it != outmap.end(); ++it)
+	{
+		temp.push_back(it->second);
+	}
+
+	std::vector<std::vector<int>> unique;
+	unique.resize(temp.size());
+	std::copy(temp.begin(), temp.end(), unique.begin());
+	std::sort(unique.begin(), unique.end());
+	unique.erase(std::unique(unique.begin(), unique.end()), unique.end());
+
+	outmap.clear();
+	for (size_t i = 0; i < unique.size(); ++i)
+	{
+		outmap.insert(std::make_pair(i, unique[i]));
+	}
+
+	if (fmap.size() != outmap.size())
+	{
+		Minimization(outmap);
+	} 
+	else
+	{
+		PrepareToPrint(outmap);
+	}
+}
+
+void CMooreMinimization::PrepareToPrint(std::map<int, std::vector<int>>& outmap)
+{
+	std::vector<std::vector<int>> outputMatrix(m_x);
+	std::vector<int> temp;
+	for (auto it = outmap.begin(); it != outmap.end(); ++it)
+	{
+		temp.push_back(it->second[0]);
+	}
+
+	std::vector<int> finalOutputs = GetFinalOutputs(temp);
+
+	for (size_t i = 0; i < m_x; ++i)
+	{
+		outputMatrix[i].resize(outmap.size());
+		for (auto it = outmap.begin(); it != outmap.end(); ++it)
+		{
+			auto b = m_inputMatrix[i][it->second[0]];
+			auto index = std::find(temp.begin(), temp.end(), b);
+			if (index != temp.end())
+			{
+				outputMatrix[i][it->first] = *index;
+			}
+		}
+	}
+
+	Print(finalOutputs, outputMatrix, outmap.size());
+}
+
+std::vector<int> CMooreMinimization::GetFinalOutputs(std::vector<int>& temp)
+{
+	std::vector<int> finalOutputs;
+	for (size_t i = 0; i < temp.size(); ++i)
+	{
+		finalOutputs.push_back(m_outputAlphabetCharacters[temp[i]]);
+	}
+	return finalOutputs;
+}
+
+void CMooreMinimization::Print(std::vector<int>& finalOutputs, std::vector<std::vector<int>>& outputMatrix, int k)
+{
+	for (size_t i = 0; i < finalOutputs.size(); ++i)
+	{
+		std::cout << "y" << finalOutputs[i] << " ";
+	}
+
 	std::cout << std::endl;
+
+	for (size_t i = 0; i < m_x; ++i)
+	{
+		for (int j = 0; j < k; ++j)
+		{
+			std::cout << "z" << outputMatrix[i][j] << " ";
+		}
+		std::cout << std::endl;
+	}
 }
