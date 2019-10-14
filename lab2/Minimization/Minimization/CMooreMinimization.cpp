@@ -1,5 +1,4 @@
 #include "CMooreMinimization.h"
-#include <iostream>
 
 CMooreMinimization::CMooreMinimization(const int x, const int y, const int s)
 	: m_x(x)
@@ -8,6 +7,27 @@ CMooreMinimization::CMooreMinimization(const int x, const int y, const int s)
 {
 }
 
+int CMooreMinimization::GetNumberFromInput(std::ifstream& fin)
+{
+	std::string line;
+	fin >> line;
+	std::smatch res;
+	std::regex reg("[0-9]\\d*");
+	if (std::regex_search(line, res, reg))
+	{
+		return std::stoi(res[0]);
+	}
+}
+
+std::vector<int> CMooreMinimization::GetUnique(const std::vector<int> arr)
+{
+	std::vector<int> unique;
+	unique.resize(arr.size());
+	std::copy(arr.begin(), arr.end(), unique.begin());
+	std::sort(unique.begin(), unique.end());
+	unique.erase(std::unique(unique.begin(), unique.end()), unique.end());
+	return unique;
+}
 
 void CMooreMinimization::Parse(std::ifstream& fin)
 {
@@ -48,7 +68,6 @@ void CMooreMinimization::MinimizationStart()
 
 void CMooreMinimization::Minimization(std::map<int, std::vector<int>>& fmap)
 {
-	bool stopMinimization = false;
 	std::vector<std::vector<int>> newMatrix(m_x);
 	std::vector<size_t> mapSizes;
 	
@@ -143,16 +162,21 @@ void CMooreMinimization::PrepareToPrint(std::map<int, std::vector<int>>& outmap)
 		outputMatrix[i].resize(outmap.size());
 		for (auto it = outmap.begin(); it != outmap.end(); ++it)
 		{
-			auto b = m_inputMatrix[i][it->second[0]];
-			auto index = std::find(temp.begin(), temp.end(), b);
-			if (index != temp.end())
+			auto s = m_inputMatrix[i][it->second[0]];
+			for (auto it1 = outmap.begin(); it1 != outmap.end(); ++it1)
 			{
-				outputMatrix[i][it->first] = *index;
+				auto index = std::find(it1->second.begin(), it1->second.end(), s);
+				if (index != it1->second.end())
+				{
+					outputMatrix[i][it->first] = it1->first;
+					break;
+				}
 			}
 		}
 	}
 
 	Print(finalOutputs, outputMatrix, outmap.size());
+	Visualization(finalOutputs.size(), outputMatrix);
 }
 
 std::vector<int> CMooreMinimization::GetFinalOutputs(std::vector<int>& temp)
@@ -182,4 +206,47 @@ void CMooreMinimization::Print(std::vector<int>& finalOutputs, std::vector<std::
 		}
 		std::cout << std::endl;
 	}
+}
+
+void CMooreMinimization::Visualization(int k, std::vector<std::vector<int>>& outputMatrix)
+{
+	using Edge = std::pair<int, int>;
+	using Graph = boost::adjacency_list< boost::vecS,
+		boost::vecS, boost::directedS,
+		boost::property<boost::vertex_color_t,
+		boost::default_color_type>,
+		boost::property< boost::edge_weight_t, std::string>
+	>;
+
+	std::vector<int> temp;
+	for (size_t i = 0; i < outputMatrix.size(); ++i)
+	{
+		for (size_t j = 0; j < outputMatrix[i].size(); ++j)
+		{
+			temp.push_back(outputMatrix[i][j]);
+		}
+	}
+
+	std::vector<std::string> weights(temp.size());
+	std::vector<std::pair<int, int>> edge(temp.size());
+	std::ofstream fout("mooreGraph.dot");
+
+	for (size_t i = 0, x = 0, index = 0; i < temp.size(); ++i, ++index)
+	{
+		if (i % k == 0 && i != 0)
+		{
+			++x;
+			index = 0;
+		}
+		weights[i] = 'x' + std::to_string(x);
+		edge[i] = { index, temp[i] };
+	}
+
+	Graph graph(edge.begin(), edge.end(), weights.begin(), k);
+
+	boost::dynamic_properties dp;
+	dp.property("label", boost::get(boost::edge_weight, graph));
+	dp.property("node_id", boost::get(boost::vertex_index, graph));
+
+	write_graphviz_dp(fout, graph, dp);
 }

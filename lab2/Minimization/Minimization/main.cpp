@@ -1,11 +1,10 @@
-﻿#include "Helper.h"
-#include "CMealyMinimization.h"
+﻿#include "CMealyMinimization.h"
 #include "CMooreMinimization.h"
 #include <iostream>
 
 int main(int argc, char* argv[])
 {
-	if (argc != 2)
+	if (argc != 3)
 	{
 		std::cout << "Arguments error" << std::endl;
 		return 1;
@@ -13,6 +12,7 @@ int main(int argc, char* argv[])
 
 	std::string fileName = argv[1];
 	std::ifstream fin(fileName);
+	std::ofstream fout(argv[2]);
 
 	if (!fin.is_open())
 	{
