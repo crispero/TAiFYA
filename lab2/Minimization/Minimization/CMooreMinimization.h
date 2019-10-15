@@ -1,34 +1,34 @@
 #pragma once
-#include <fstream>
-#include <vector>
-#include <map>
-#include <regex>
-#include <iostream>
-#include <boost/graph/graphviz.hpp>
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/iteration_macros.hpp>
+#include "IMachineMinimization.h"
 
-class CMooreMinimization
+class CMooreMinimization : public IMachineMinimization
 {
 public:
-	CMooreMinimization(const int x, const int y, const int s);
+	CMooreMinimization(const size_t x, const size_t y, const size_t s);
 	~CMooreMinimization() = default;
 
-	void Parse(std::ifstream& fin);
-	void MinimizationStart();
-	void Print(std::vector<int>& finalOutputs, std::vector<std::vector<int>>& outputMatrix, int k);
-	void Visualization(int k, std::vector<std::vector<int>>& outputMatrix);
+	void Parse(std::istream& fin) override;
+	void Minimization() override;
+	void Print(std::ostream& fout) const override;
+	void Visualization() const override;
 private:
-	void Minimization(std::map<int, std::vector<int>>& fmap);
-	void PrepareToPrint(std::map<int, std::vector<int>>& fmap);
-	std::vector<int> GetFinalOutputs(std::vector<int>& temp);
-	int GetNumberFromInput(std::ifstream& fin);
-	std::vector<int> GetUnique(const std::vector<int> arr);
+	int GetNumberFromInput(std::istream& fin);
+	std::vector<int> GetUnique(const std::vector<int>& arr);
+	std::vector<int> GetFinalOutputs(const std::vector<int>& temp);
+	std::map<int, std::vector<std::pair<int, std::vector<int>>>> GetDontKnowWhatKindOfMap();
+	std::map<int, std::vector<int>> GetTempMapForMinimization(const std::map<int, std::vector<std::pair<int, std::vector<int>>>> & dontKnowWhatKindOfMap);
+	void PrepareToPrint();
+	void SetMapForMinimization();
+	void SetVisualizationVector();
 
-	int m_x;
-	int m_y;
-	int m_s;
+	const size_t m_x;
+	const size_t m_y;
+	const size_t m_s;
+	std::map<int, std::vector<int>> m_mapForMinimization;
 	std::vector<int> m_outputAlphabetCharacters;
 	std::vector<std::vector<int>> m_inputMatrix;
+	std::vector<int> m_finalOutputs;
+	std::vector<std::vector<int>> m_outputMatrix;
+	std::vector<int> m_visualizationVector;
 };
 

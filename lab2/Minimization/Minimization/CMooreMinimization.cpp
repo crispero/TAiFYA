@@ -1,35 +1,13 @@
 #include "CMooreMinimization.h"
 
-CMooreMinimization::CMooreMinimization(const int x, const int y, const int s)
+CMooreMinimization::CMooreMinimization(const size_t x, const size_t y, const size_t s)
 	: m_x(x)
 	, m_y(y)
 	, m_s(s)
 {
 }
 
-int CMooreMinimization::GetNumberFromInput(std::ifstream& fin)
-{
-	std::string line;
-	fin >> line;
-	std::smatch res;
-	std::regex reg("[0-9]\\d*");
-	if (std::regex_search(line, res, reg))
-	{
-		return std::stoi(res[0]);
-	}
-}
-
-std::vector<int> CMooreMinimization::GetUnique(const std::vector<int> arr)
-{
-	std::vector<int> unique;
-	unique.resize(arr.size());
-	std::copy(arr.begin(), arr.end(), unique.begin());
-	std::sort(unique.begin(), unique.end());
-	unique.erase(std::unique(unique.begin(), unique.end()), unique.end());
-	return unique;
-}
-
-void CMooreMinimization::Parse(std::ifstream& fin)
+void CMooreMinimization::Parse(std::istream& fin)
 {
 	do
 	{
@@ -45,12 +23,39 @@ void CMooreMinimization::Parse(std::ifstream& fin)
 			m_inputMatrix[i][j] = GetNumberFromInput(fin);
 		}
 	}
+
+	SetMapForMinimization();
 }
 
-void CMooreMinimization::MinimizationStart()
+int CMooreMinimization::GetNumberFromInput(std::istream& fin)
+{
+	std::string line;
+	fin >> line;
+	std::smatch res;
+	std::regex reg("[0-9]\\d*");
+	if (std::regex_search(line, res, reg))
+	{
+		return std::stoi(res[0]);
+	}
+	else
+	{
+		throw std::exception("Failed to parse number from input");
+	}
+}
+
+std::vector<int> CMooreMinimization::GetUnique(const std::vector<int>& arr)
+{
+	std::vector<int> unique;
+	unique.resize(arr.size());
+	std::copy(arr.begin(), arr.end(), unique.begin());
+	std::sort(unique.begin(), unique.end());
+	unique.erase(std::unique(unique.begin(), unique.end()), unique.end());
+	return unique;
+}
+
+void CMooreMinimization::SetMapForMinimization()
 {
 	auto uniqueOutput = GetUnique(m_outputAlphabetCharacters);
-	std::map<int, std::vector<int>> fmap;
 	for (size_t i = 0; i < uniqueOutput.size(); ++i)
 	{
 		std::vector<int> temp;
@@ -61,47 +66,43 @@ void CMooreMinimization::MinimizationStart()
 				temp.push_back(j);
 			}
 		}
-		fmap.insert(std::make_pair(uniqueOutput[i], temp));
+		m_mapForMinimization.insert(std::make_pair(uniqueOutput[i], temp));
 	}
-	Minimization(fmap);
 }
 
-void CMooreMinimization::Minimization(std::map<int, std::vector<int>>& fmap)
+std::map<int, std::vector<std::pair<int, std::vector<int>>>> CMooreMinimization::GetDontKnowWhatKindOfMap()
 {
-	std::vector<std::vector<int>> newMatrix(m_x);
-	std::vector<size_t> mapSizes;
-	
-	std::map<int, std::vector<std::pair<int, std::vector<int>>>> map1;
-	for (auto it = fmap.begin(); it != fmap.end(); ++it)
+	std::map<int, std::vector<std::pair<int, std::vector<int>>>> dontKnowWhatKindOfMap;
+	for (auto it = m_mapForMinimization.begin(); it != m_mapForMinimization.end(); ++it)
 	{
-		mapSizes.push_back(it->second.size());
 		std::vector<std::pair<int, std::vector<int>>> vv;
 		for (size_t i = 0; i < it->second.size(); ++i)
 		{
 			std::vector<int> temp;
 			for (size_t j = 0; j < m_x; ++j)
 			{
-				
-				newMatrix[j].resize(m_s);
 				auto a = m_inputMatrix[j][it->second[i]];
-				for (auto it1 = fmap.begin(); it != fmap.end(); ++it1)
+				for (auto it1 = m_mapForMinimization.begin(); it != m_mapForMinimization.end(); ++it1)
 				{
 					if (std::find(it1->second.begin(), it1->second.end(), a) != it1->second.end())
 					{
 						temp.push_back(it1->first);
-						newMatrix[j][i] = it1->first;
 						break;
 					}
 				}
 			}
 			vv.push_back(std::make_pair(it->second[i], temp));
 		}
-		map1.insert(std::make_pair(it->first, vv));
+		dontKnowWhatKindOfMap.insert(std::make_pair(it->first, vv));
 	}
+	return dontKnowWhatKindOfMap;
+}
 
-	std::map<int, std::vector<int>> outmap;
+std::map<int, std::vector<int>> CMooreMinimization::GetTempMapForMinimization(const std::map<int, std::vector<std::pair<int, std::vector<int>>>>& dontKnowWhatKindOfMap)
+{
+	std::map<int, std::vector<int>> tempMapForMinimization;
 	int index = 0;
-	for (auto it = map1.begin(); it != map1.end(); ++it)
+	for (auto it = dontKnowWhatKindOfMap.begin(); it != dontKnowWhatKindOfMap.end(); ++it)
 	{
 		for (size_t i = 0; i < it->second.size(); ++i)
 		{
@@ -113,16 +114,29 @@ void CMooreMinimization::Minimization(std::map<int, std::vector<int>>& fmap)
 					temp.push_back(it->second[j].first);
 				}
 			}
-			outmap.insert(std::make_pair(index, temp));
+			tempMapForMinimization.insert(std::make_pair(index, temp));
 			index++;
 		}
 	}
+	return tempMapForMinimization;
+}
+
+void CMooreMinimization::Minimization()
+{	
+	std::map<int, std::vector<std::pair<int, std::vector<int>>>> dontKnowWhatKindOfMap = GetDontKnowWhatKindOfMap();
+	
+	std::map<int, std::vector<int>> tempMapForMinimization = GetTempMapForMinimization(dontKnowWhatKindOfMap);
+	
 	
 	std::vector<std::vector<int>> temp;
-	for (auto it = outmap.begin(); it != outmap.end(); ++it)
+	for (auto it = tempMapForMinimization.begin(); it != tempMapForMinimization.end(); ++it)
 	{
 		temp.push_back(it->second);
 	}
+
+	tempMapForMinimization.clear();
+	tempMapForMinimization.insert(m_mapForMinimization.begin(), m_mapForMinimization.end());
+	m_mapForMinimization.clear();
 
 	std::vector<std::vector<int>> unique;
 	unique.resize(temp.size());
@@ -130,56 +144,54 @@ void CMooreMinimization::Minimization(std::map<int, std::vector<int>>& fmap)
 	std::sort(unique.begin(), unique.end());
 	unique.erase(std::unique(unique.begin(), unique.end()), unique.end());
 
-	outmap.clear();
 	for (size_t i = 0; i < unique.size(); ++i)
 	{
-		outmap.insert(std::make_pair(i, unique[i]));
+		m_mapForMinimization.insert(std::make_pair(i, unique[i]));
 	}
 
-	if (fmap.size() != outmap.size())
+	if (m_mapForMinimization.size() != tempMapForMinimization.size())
 	{
-		Minimization(outmap);
+		Minimization();
 	} 
 	else
 	{
-		PrepareToPrint(outmap);
+		PrepareToPrint();
 	}
 }
 
-void CMooreMinimization::PrepareToPrint(std::map<int, std::vector<int>>& outmap)
+void CMooreMinimization::PrepareToPrint()
 {
-	std::vector<std::vector<int>> outputMatrix(m_x);
+	m_outputMatrix.resize(m_x);
 	std::vector<int> temp;
-	for (auto it = outmap.begin(); it != outmap.end(); ++it)
+	for (auto it = m_mapForMinimization.begin(); it != m_mapForMinimization.end(); ++it)
 	{
 		temp.push_back(it->second[0]);
 	}
 
-	std::vector<int> finalOutputs = GetFinalOutputs(temp);
+	m_finalOutputs = GetFinalOutputs(temp);
 
 	for (size_t i = 0; i < m_x; ++i)
 	{
-		outputMatrix[i].resize(outmap.size());
-		for (auto it = outmap.begin(); it != outmap.end(); ++it)
+		m_outputMatrix[i].resize(m_mapForMinimization.size());
+		for (auto it = m_mapForMinimization.begin(); it != m_mapForMinimization.end(); ++it)
 		{
 			auto s = m_inputMatrix[i][it->second[0]];
-			for (auto it1 = outmap.begin(); it1 != outmap.end(); ++it1)
+			for (auto it1 = m_mapForMinimization.begin(); it1 != m_mapForMinimization.end(); ++it1)
 			{
 				auto index = std::find(it1->second.begin(), it1->second.end(), s);
 				if (index != it1->second.end())
 				{
-					outputMatrix[i][it->first] = it1->first;
+					m_outputMatrix[i][it->first] = it1->first;
 					break;
 				}
 			}
 		}
 	}
 
-	Print(finalOutputs, outputMatrix, outmap.size());
-	Visualization(finalOutputs.size(), outputMatrix);
+	SetVisualizationVector();
 }
 
-std::vector<int> CMooreMinimization::GetFinalOutputs(std::vector<int>& temp)
+std::vector<int> CMooreMinimization::GetFinalOutputs(const std::vector<int>& temp)
 {
 	std::vector<int> finalOutputs;
 	for (size_t i = 0; i < temp.size(); ++i)
@@ -189,26 +201,37 @@ std::vector<int> CMooreMinimization::GetFinalOutputs(std::vector<int>& temp)
 	return finalOutputs;
 }
 
-void CMooreMinimization::Print(std::vector<int>& finalOutputs, std::vector<std::vector<int>>& outputMatrix, int k)
+void CMooreMinimization::Print(std::ostream& fout) const
 {
-	for (size_t i = 0; i < finalOutputs.size(); ++i)
+	for (size_t i = 0; i < m_finalOutputs.size(); ++i)
 	{
-		std::cout << "y" << finalOutputs[i] << " ";
+		fout << "y" << m_finalOutputs[i] << " ";
 	}
 
-	std::cout << std::endl;
+	fout << std::endl;
 
 	for (size_t i = 0; i < m_x; ++i)
 	{
-		for (int j = 0; j < k; ++j)
+		for (size_t j = 0; j < m_mapForMinimization.size(); ++j)
 		{
-			std::cout << "z" << outputMatrix[i][j] << " ";
+			fout << "z" << m_outputMatrix[i][j] << " ";
 		}
-		std::cout << std::endl;
+		fout << std::endl;
 	}
 }
 
-void CMooreMinimization::Visualization(int k, std::vector<std::vector<int>>& outputMatrix)
+void CMooreMinimization::SetVisualizationVector()
+{
+	for (size_t i = 0; i < m_outputMatrix.size(); ++i)
+	{
+		for (size_t j = 0; j < m_outputMatrix[i].size(); ++j)
+		{
+			m_visualizationVector.push_back(m_outputMatrix[i][j]);
+		}
+	}
+}
+
+void CMooreMinimization::Visualization() const
 {
 	using Edge = std::pair<int, int>;
 	using Graph = boost::adjacency_list< boost::vecS,
@@ -217,32 +240,23 @@ void CMooreMinimization::Visualization(int k, std::vector<std::vector<int>>& out
 		boost::default_color_type>,
 		boost::property< boost::edge_weight_t, std::string>
 	>;
-
-	std::vector<int> temp;
-	for (size_t i = 0; i < outputMatrix.size(); ++i)
-	{
-		for (size_t j = 0; j < outputMatrix[i].size(); ++j)
-		{
-			temp.push_back(outputMatrix[i][j]);
-		}
-	}
-
-	std::vector<std::string> weights(temp.size());
-	std::vector<std::pair<int, int>> edge(temp.size());
+	
+	std::vector<std::string> weights(m_visualizationVector.size());
+	std::vector<std::pair<int, int>> edge(m_visualizationVector.size());
 	std::ofstream fout("mooreGraph.dot");
 
-	for (size_t i = 0, x = 0, index = 0; i < temp.size(); ++i, ++index)
+	for (size_t i = 0, x = 0, index = 0; i < m_visualizationVector.size(); ++i, ++index)
 	{
-		if (i % k == 0 && i != 0)
+		if (i % m_finalOutputs.size() == 0 && i != 0)
 		{
 			++x;
 			index = 0;
 		}
 		weights[i] = 'x' + std::to_string(x);
-		edge[i] = { index, temp[i] };
+		edge[i] = { index, m_visualizationVector[i] };
 	}
 
-	Graph graph(edge.begin(), edge.end(), weights.begin(), k);
+	Graph graph(edge.begin(), edge.end(), weights.begin(), m_finalOutputs.size());
 
 	boost::dynamic_properties dp;
 	dp.property("label", boost::get(boost::edge_weight, graph));

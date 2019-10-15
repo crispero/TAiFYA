@@ -4,42 +4,49 @@
 
 int main(int argc, char* argv[])
 {
-	if (argc != 3)
+	try
 	{
-		std::cout << "Arguments error" << std::endl;
-		return 1;
-	}
+		if (argc != 3)
+		{
+			throw std::exception("Invalid arguments count");
+		}
 
-	std::string fileName = argv[1];
-	std::ifstream fin(fileName);
-	std::ofstream fout(argv[2]);
+		std::string fileName = argv[1];
+		std::ifstream fin(fileName);
+		std::ofstream fout(argv[2]);
 
-	if (!fin.is_open())
-	{
-		std::cout << "Can`t open file" << std::endl;
-		return 1;
-	}
+		if (!fin.is_open())
+		{
+			throw std::exception("Can't open file");
+		}
 
-	int x, y, s;
-	std::string type;
-	fin >> x >> y >> s >> type;
-	  
-	if (type == "mealy")
+		int x, y, s;
+		std::string type;
+		fin >> x >> y >> s >> type;
+
+		if (type == "mealy")
+		{
+			CMealyMinimization mealyMinimization(x, y, s);
+			mealyMinimization.Parse(fin);
+		}
+		else if (type == "moore")
+		{
+			CMooreMinimization mooreMinimization(x, y, s);
+			mooreMinimization.Parse(fin);
+			mooreMinimization.Minimization();
+			mooreMinimization.Print(fout);
+			mooreMinimization.Visualization();
+		}
+		else
+		{
+			throw std::exception("Unknown type");
+		}
+	} 
+	catch (std::exception & e)
 	{
-		CMealyMinimization mealyMinimization(x, y, s);
-		mealyMinimization.Parse(fin);
+		std::cout << e.what() << '\n';
 	}
-	else if (type == "moore")
-	{
-		CMooreMinimization mooreMinimization(x, y, s);
-		mooreMinimization.Parse(fin);
-		mooreMinimization.MinimizationStart();
-	}
-	else
-	{
-		std::cout << "Unknown type" << std::endl;
-		return 1;
-	}
+	
 
 	return 0;
 }

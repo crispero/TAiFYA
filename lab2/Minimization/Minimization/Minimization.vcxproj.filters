@@ -32,5 +32,8 @@
     <ClInclude Include="CMealyMinimization.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="IMachineMinimization.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
