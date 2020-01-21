@@ -7,13 +7,6 @@ namespace Lexer
 	std::vector<char> OPERATIONS, BRACKETS, SEPARATORS, BINARY, OCTAL, DECIMAL, HEXADECIMAL, DECIMAL_FRACTIONAL;
 }
 
-namespace CommentSymbol
-{
-	std::string Single = "//";
-	std::string StartMultiline = "/*";
-	std::string FinishMultiline = "*/";
-}
-
 CLexer::CLexer(std::istream& input)
 	: m_input(input)
 	, m_currCommentState(CommentState::NO_COMMENT)
@@ -28,8 +21,7 @@ Token CLexer::GetToken(const std::string line, std::string& str)
 	Token token = CheckComment(str);
 	if (token.type != TokenType::Comment && m_currCommentState == CommentState::NO_COMMENT)
 	{
-		auto it = std::find(Lexer::KEYWORDS.begin(), Lexer::KEYWORDS.end(), str);
-		auto length = it != Lexer::KEYWORDS.end() ? (*it).length() : 0;
+		auto length = CheckOperation(str);
 		bool isCheckOperation = length > 0;
 		size_t lenghtWithBracket = 0;
 		std::string substr;
@@ -55,18 +47,6 @@ Token CLexer::GetToken(const std::string line, std::string& str)
 			std::string str1 = str;
 			str.erase(0, isCheckOperation ? length : lenghtWithBracket);
 			return Token{ TokenType::Keyword, isCheckOperation ? str1 : substr, m_lineNumber, (size_t)GetPositionInLine(line, str) };
-		}
-
-		if (IsError(str))
-		{
-			return Token{ TokenType::Error, str, m_lineNumber, (size_t)GetPositionInLine(line, str) };
-		}
-
-		if (IsKeyword(str))
-		{
-			std::string str1 = str;
-			str.erase(str.begin(), str.end());
-			return Token{ TokenType::Keyword, str1, m_lineNumber, (size_t)GetPositionInLine(line, str) };
 		}
 
 		if (IsArithmeticOperation(str[0]) && !IsDigit(str[1]))
@@ -97,7 +77,6 @@ Token CLexer::GetToken(const std::string line, std::string& str)
 			return Token{ TokenType::Bracket, substr, m_lineNumber, (size_t)GetPositionInLine(line, str) };
 		}
 
-
 		if (IsSeparator(str[0]))
 		{
 			substr = str.substr(0, 1);
@@ -123,6 +102,16 @@ Token CLexer::GetToken(const std::string line, std::string& str)
 			return Token{ TokenType::Array, strArr, m_lineNumber };
 		}
 
+		if (str[0] == '"')
+		{
+			return CheckString(str);
+		}
+
+		if (str[0] == '\'')
+		{
+			return CheckChar(str);
+		}
+
 		if (IsLetter(str[0]))
 		{
 			return CheckId(str);
@@ -141,6 +130,10 @@ Token CLexer::GetToken(const std::string line, std::string& str)
 		token.lineNumber = m_lineNumber;
 		return token;
 	}
+
+	std::string str1 = str;
+	str.erase(str.begin(), str.end());
+	return Token{ TokenType::Error, str1, m_lineNumber };
 }
 
 size_t CLexer::CheckOperation(const std::string str)
@@ -209,16 +202,6 @@ bool CLexer::IsDecimalFractional(const char ch)
 	return HaveCharInVector(Lexer::DECIMAL_FRACTIONAL, ch);
 }
 
-bool CLexer::IsError(const std::string str)
-{
-	if (m_prevTokenType == TokenType::Keyword && IsKeyword(str))
-	{
-		return true;
-	}
-
-	return false;
-}
-
 Token CLexer::CheckComment(const std::string str)
 {
 	Token token;
@@ -243,7 +226,6 @@ Token CLexer::CheckComment(const std::string str)
 		if (tempStr == "//" && m_currCommentState != CommentState::MULTILINE)
 		{
 			m_currCommentState = CommentState::SINGLE_LINE;
-		//	m_tempLineNumber = m_lineNumber;
 		}
 		else if (tempStr == "/*")
 		{
@@ -254,7 +236,7 @@ Token CLexer::CheckComment(const std::string str)
 			m_currCommentState = CommentState::NO_COMMENT;
 		}
 
-		if (m_currCommentState == CommentState::SINGLE_LINE/*  && m_tempLineNumber != m_lineNumber */)
+		if (m_currCommentState == CommentState::SINGLE_LINE)
 		{
 			m_currCommentState = CommentState::NO_COMMENT;
 		}
@@ -270,7 +252,7 @@ Token CLexer::CheckId(std::string& str)
 	std::string id;
 	for (char ch : str)
 	{
-		if (IsLetter(ch))
+		if (IsLetter(ch) || IsDigit(ch))
 		{
 			id.push_back(ch);
 		}
@@ -284,19 +266,20 @@ Token CLexer::CheckNumber(std::string& str)
 {
 	Token token;
 	std::string system = str.substr(0, 2);
+	std::string substr = str.length() >= 2 ? str.substr(2) : str;
 	std::string digits;
 
 	if (system == "0b")
 	{
-		token = GetNumberToken(str, TokenType::Binary);
+		token = GetNumberToken(substr, TokenType::Binary, system);
 	}
 	else if (system == "0o")
 	{
-		token = GetNumberToken(str, TokenType::Octal);
+		token = GetNumberToken(substr, TokenType::Octal, system);
 	}
 	else if (system == "0x")
 	{
-		token = GetNumberToken(str, TokenType::Hexadecimal);
+		token = GetNumberToken(substr, TokenType::Hexadecimal, system);
 	}
 	else
 	{
@@ -304,18 +287,19 @@ Token CLexer::CheckNumber(std::string& str)
 		{
 			char currCh = str[i];
 			char nextCh = str[i + 1];
+			bool isNextFloat = (IsDigit(nextCh) || nextCh == '+' || nextCh == '-');
 			bool isDecimalFractional = IsDecimalFractional(currCh);
 
-			if (!IsSeparator(currCh) && (IsDigit(currCh) || isDecimalFractional || currCh == '+'))
+			if (!IsSeparator(currCh) && (IsDigit(currCh) || isDecimalFractional || currCh == '+' || currCh == '-'))
 			{
-				if (isDecimalFractional && (IsDigit(nextCh) || nextCh == '+'))
+				if (isDecimalFractional && isNextFloat)
 				{
 					token.type = TokenType::Float;
 				}
 
 				if (token.type != TokenType::Float)
 				{
-					token.type = isDecimalFractional && !(IsDigit(nextCh) || nextCh == '+') ? TokenType::Error : TokenType::Integer;
+					token.type = isDecimalFractional && !isNextFloat ? TokenType::Error : TokenType::Integer;
 				}
 				digits.push_back(currCh);
 				token.value = digits;
@@ -333,17 +317,26 @@ Token CLexer::CheckNumber(std::string& str)
 		str.erase(0, token.value.size());
 	}
 	else
-	{
-		str.erase(str.begin(), str.end());
+	{	
+		std::string temp;
+		for (char ch : str)
+		{
+			if (!IsSeparator(ch))
+			{
+				temp.push_back(ch);
+			}
+		}
+		token.value = temp;
+		str.erase(0, temp.size());
 	}
 	
 	return token;
 }
 
-Token CLexer::GetNumberToken(std::string& str, TokenType type)
+Token CLexer::GetNumberToken(std::string& str, TokenType type, std::string system)
 {
 	Token token;
-	std::string digits;
+	std::string digits = system;
 	for (char ch : str)
 	{
 		if (!IsSeparator(ch))
@@ -365,6 +358,52 @@ Token CLexer::GetNumberToken(std::string& str, TokenType type)
 	token.lineNumber = m_lineNumber;
 
 	return token;
+}
+
+Token CLexer::CheckString(std::string& str)
+{
+	std::string temp;
+	for (char ch : str)
+	{
+		if (!IsSeparator(ch))
+		{
+			temp.push_back(ch);
+		}
+	}
+
+	if (temp[temp.size() - 1] == '"')
+	{
+		str.erase(0, temp.size());
+		return Token{ TokenType::String, temp, m_lineNumber };
+	}
+	else
+	{
+		str.erase(0, temp.size());
+		return Token{ TokenType::Error, temp, m_lineNumber };
+	}
+}
+
+Token CLexer::CheckChar(std::string& str)
+{
+	std::string temp;
+	for (char ch : str)
+	{
+		if (!IsSeparator(ch))
+		{
+			temp.push_back(ch);
+		}
+	}
+
+	if (temp[temp.size() - 1] == '\'')
+	{
+		str.erase(0, temp.size());
+		return Token{ TokenType::Char, temp, m_lineNumber };
+	}
+	else
+	{
+		str.erase(0, temp.size());
+		return Token{ TokenType::Error, temp, m_lineNumber };
+	}
 }
 
 bool CLexer::HaveStringInVector(const std::vector<std::string> vstr, const std::string str)
@@ -455,7 +494,7 @@ void CLexer::InitOctal()
 
 void CLexer::InitDecimal()
 {
-	Lexer::OCTAL = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+	Lexer::DECIMAL = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 }
 
 void CLexer::InitDecimalFractional()
@@ -482,7 +521,9 @@ void CLexer::StartProcess()
 		{
 			while (!str.empty())
 			{
+				size_t positionIndex = line.find(str);
 				Token token = GetToken(line, str);
+				token.positionIndex = positionIndex;
 				if (token.type != TokenType::Comment)
 				{
 					m_tokenVector.push_back(token);
@@ -491,7 +532,6 @@ void CLexer::StartProcess()
 		}
 	}
 }
-
 
 void CLexer::PrintTokens(std::ostream& output)
 {
@@ -513,12 +553,14 @@ std::string CLexer::TokenTypeToString(const TokenType tokenType)
 	if (tokenType == TokenType::Error) return "Error";
 	if (tokenType == TokenType::Float) return "Float";
 	if (tokenType == TokenType::Hexadecimal) return "Hexadecimal";
-	if (tokenType == TokenType::Id) return "id";
+	if (tokenType == TokenType::Id) return "Id";
 	if (tokenType == TokenType::Integer) return "Integer";
 	if (tokenType == TokenType::Keyword) return "Keyword";
 	if (tokenType == TokenType::Nothing) return "Nothing";
 	if (tokenType == TokenType::Octal) return "Octal";
 	if (tokenType == TokenType::Separator) return "Separator";
+	if (tokenType == TokenType::String) return "String";
+	if (tokenType == TokenType::Char) return "Char";
 
 	return "";
 }

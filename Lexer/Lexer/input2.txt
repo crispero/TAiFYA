@@ -7,6 +7,14 @@ int main(int[] args)
 	int i = 0;
 }
 */
-	int binary = 0b1101001 | 3 && 4 != 2;
-	
+	int binary = 0b1101001;
+	int octal = 0o82472;
+	int hexadecimal = 0xZA15F;
+
+	float f = 0.5 - 0.5E+12 * 1.0E-2;
+
+	char ch = '"';
+	char ch1 = '\'';
+
+	string s = "ewvw\"wvwevewv'wefwe\\";
 }

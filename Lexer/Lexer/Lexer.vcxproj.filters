@@ -18,7 +18,13 @@
     <ClInclude Include="CLexer.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
-    <ClInclude Include="Const.h">
+    <ClInclude Include="TokenType.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Token.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="CommentState.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

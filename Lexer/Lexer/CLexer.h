@@ -1,45 +1,9 @@
 #pragma once
-#include <string>
+#include "Token.h"
+#include "CommentState.h"
 #include <vector>
 #include <sstream>
 #include <fstream>
-
-enum TokenType
-{
-	Id,
-	Integer,
-	Float,
-	Keyword,
-	ArithmeticOperation,
-	ComparisonsOperator,
-	LogicOperator,
-	Bracket,
-	Comment,
-	Error,
-	Nothing,
-	Array,
-	Separator,
-	Binary,
-	Octal,
-	Decimal,
-	DecimalFractional,
-	Hexadecimal,
-};
-
-struct Token
-{
-	TokenType type;
-	std::string value;
-	size_t lineNumber = 1;
-	size_t positionIndex = 0;
-};
-
-enum CommentState
-{
-	SINGLE_LINE,
-	MULTILINE,
-	NO_COMMENT,
-};
 
 class CLexer
 {
@@ -83,14 +47,15 @@ private:
 	bool IsDecimal(const char ch);
 	bool IsDecimalFractional(const char ch);
 	bool IsHexadecimal(const char ch);
-	bool IsError(const std::string str);
 	bool IsLetter(const char symbol);
 	bool IsDigit(const char symbol);
 
 	Token CheckComment(const std::string str);
 	Token CheckId(std::string& str);
 	Token CheckNumber(std::string& str);
-	Token GetNumberToken(std::string& str, TokenType type);
+	Token GetNumberToken(std::string& str, TokenType type, std::string system);
+	Token CheckString(std::string& str);
+	Token CheckChar(std::string& str);
 
 	std::string TokenTypeToString(const TokenType tokenType);
 
