@@ -1,0 +1,12 @@
+int main(int[] args)
+{
+	int 1457error = 56;
+	int te_st = 0;  //ytewpotwetwet
+/*
+{
+	int i = 0;
+}
+*/
+	int binary = 0b1101001 | 3 && 4 != 2;
+	
+}

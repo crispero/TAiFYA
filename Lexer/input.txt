@@ -1,0 +1,23 @@
+void main(string[] args)
+{
+	int a = 5 / 0xA4B5EF | 0b0101010101;//ergergerge
+	if (a == 5)
+	{
+		a = a + 3;
+	}/*wegwg
+	ewgweg
+	erger*/
+	if (a <> 4)
+	{
+		bool _b = 3 <= 3;
+	}
+
+	float f = 0.5 - 0.5E+12 * 1.0E-2;
+
+	char ch = '"';
+	char ch1 = '\'';
+
+	string s = "ewvw\"wvwevewv'wefwe\\";
+
+	print(ch);
+}
