@@ -469,7 +469,7 @@ void CLexer::InitLogicOperation()
 
 void CLexer::InitBrackets()
 {
-	Lexer::BRACKETS = { '{', '}', '(', ')', ':', ',' };
+	Lexer::BRACKETS = { '{', '}', '(', ')' };
 }
 
 void CLexer::InitSeparators()
@@ -556,7 +556,6 @@ std::string CLexer::TokenTypeToString(const TokenType tokenType)
 	if (tokenType == TokenType::Id) return "Id";
 	if (tokenType == TokenType::Integer) return "Integer";
 	if (tokenType == TokenType::Keyword) return "Keyword";
-	if (tokenType == TokenType::Nothing) return "Nothing";
 	if (tokenType == TokenType::Octal) return "Octal";
 	if (tokenType == TokenType::Separator) return "Separator";
 	if (tokenType == TokenType::String) return "String";
